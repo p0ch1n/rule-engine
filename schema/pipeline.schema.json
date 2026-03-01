@@ -1,0 +1,248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bbox-proc-rules/schema/pipeline.schema.json",
+  "title": "Pipeline Configuration",
+  "description": "JSON Schema for bbox-proc-rules pipeline DAG configuration",
+  "type": "object",
+  "required": ["version", "metadata", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$",
+      "description": "Schema version (semver-lite)"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["tool_id", "class_list"],
+      "additionalProperties": false,
+      "properties": {
+        "tool_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "class_list": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "description": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/NodeConfig" },
+      "minItems": 1
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/EdgeConfig" }
+    }
+  },
+  "definitions": {
+    "Position": {
+      "type": "object",
+      "required": ["x", "y"],
+      "additionalProperties": false,
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      }
+    },
+    "NodeConfig": {
+      "type": "object",
+      "required": ["id", "type", "position", "config"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": ["filter", "logic", "relation", "merge"]
+        },
+        "position": { "$ref": "#/definitions/Position" },
+        "config": {
+          "oneOf": [
+            { "$ref": "#/definitions/FilterConfig" },
+            { "$ref": "#/definitions/LogicConfig" },
+            { "$ref": "#/definitions/RelationConfig" },
+            { "$ref": "#/definitions/MergeConfig" }
+          ]
+        }
+      }
+    },
+    "FilterCondition": {
+      "type": "object",
+      "required": ["class_name", "field", "operator", "threshold"],
+      "additionalProperties": false,
+      "properties": {
+        "class_name": { "type": "string", "minLength": 1 },
+        "field": { "type": "string", "enum": ["confidence", "width", "height", "area"] },
+        "operator": { "type": "string", "enum": ["gt", "gte", "lt", "lte", "eq"] },
+        "threshold": { "type": "number", "minimum": 0 }
+      }
+    },
+    "FilterConfig": {
+      "type": "object",
+      "required": ["conditions"],
+      "additionalProperties": false,
+      "properties": {
+        "conditions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FilterCondition" },
+          "minItems": 1
+        },
+        "logic": {
+          "type": "string",
+          "enum": ["AND", "OR"],
+          "default": "AND",
+          "description": "AND: bbox must pass ALL conditions for its class; OR: at least one"
+        }
+      }
+    },
+    "LogicConfig": {
+      "type": "object",
+      "required": ["operation", "conditions"],
+      "additionalProperties": false,
+      "properties": {
+        "operation": {
+          "type": "string",
+          "enum": ["AND", "OR"]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["class_name"],
+            "additionalProperties": false,
+            "properties": {
+              "class_name": { "type": "string", "minLength": 1 },
+              "min_count": { "type": "integer", "minimum": 1, "default": 1 },
+              "negate": { "type": "boolean", "default": false, "description": "When true, condition is satisfied when count < min_count (class absent)" }
+            }
+          },
+          "minItems": 1
+        },
+        "trigger_label": {
+          "type": "string",
+          "description": "Label included in trigger metadata when condition fires"
+        }
+      }
+    },
+    "RelationConfig": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["self_join", "cross_join"],
+          "description": "self_join: single input pairwise; cross_join: two inputs"
+        },
+        "relation_type": {
+          "type": "string",
+          "enum": ["iou", "distance", "contains", "centroid_distance"],
+          "default": "iou"
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "description": "IoU or distance threshold for relation to qualify"
+        },
+        "filter_class_a": {
+          "type": "string",
+          "description": "Only use boxes of this class for side A. Leave empty to use all classes."
+        },
+        "filter_class_b": {
+          "type": "string",
+          "description": "Only use boxes of this class for side B. Leave empty to use all classes."
+        },
+        "output_class_name": {
+          "type": "string",
+          "description": "Class name assigned to each output relation BBox. Leave empty to use the auto-generated 'A+B' label."
+        },
+        "offset": {
+          "$ref": "#/definitions/BBoxOffset",
+          "description": "Geometric offset applied to the generated relation BBox"
+        },
+        "scale": {
+          "$ref": "#/definitions/BBoxScale"
+        }
+      }
+    },
+    "MergeConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "top_k": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1000,
+          "description": "Max BBoxes retained after merge, ordered by confidence desc"
+        }
+      }
+    },
+    "BBoxOffset": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dx": { "type": "number", "default": 0 },
+        "dy": { "type": "number", "default": 0 },
+        "dw": { "type": "number", "default": 0 },
+        "dh": { "type": "number", "default": 0 }
+      }
+    },
+    "BBoxScale": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sx": { "type": "number", "minimum": 0, "default": 1.0 },
+        "sy": { "type": "number", "minimum": 0, "default": 1.0 },
+        "sw": { "type": "number", "minimum": 0, "default": 1.0 },
+        "sh": { "type": "number", "minimum": 0, "default": 1.0 }
+      }
+    },
+    "EdgeConfig": {
+      "type": "object",
+      "required": ["id", "source", "source_port", "target", "target_port"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source node id"
+        },
+        "source_port": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Target node id"
+        },
+        "target_port": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
