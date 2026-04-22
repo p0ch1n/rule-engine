@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
+
+import numpy as np
 
 from bbox_proc.nodes import NodeRegistry  # triggers all @register decorators
 from bbox_proc.nodes.base import BaseNode
@@ -30,11 +32,16 @@ class Pipeline:
         self._nodes = nodes
         self._edges = edges
 
-    def execute_frame(self, input_bboxes: List[Any]) -> "ExecutionResult":
-        """Process a single frame of bounding boxes through the pipeline.
+    def execute_frame(
+        self,
+        input_bboxes: Optional[List[Any]] = None,
+        images: Optional[List[np.ndarray]] = None,
+    ) -> "ExecutionResult":
+        """Process a single frame through the pipeline.
 
         Args:
-            input_bboxes: List[BBox] produced by the detector for this frame.
+            input_bboxes: Pre-detected BBox list for bbox-only pipelines.
+            images:       Raw image frames for pipelines containing DetectionNodes.
 
         Returns:
             ExecutionResult with per-node outputs and aggregated signals.
@@ -42,7 +49,7 @@ class Pipeline:
         from bbox_proc.engine.scheduler import Scheduler
 
         scheduler = Scheduler(self._nodes, self._edges)
-        return scheduler.run(input_bboxes)
+        return scheduler.run(input_bboxes=input_bboxes, images=images)
 
     @property
     def metadata(self) -> Dict[str, Any]:

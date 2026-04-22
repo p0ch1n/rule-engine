@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from bbox_proc.nodes.base import BaseNode
+import numpy as np
+
+from bbox_proc.nodes.base import BaseNode, PortType
 from bbox_proc.schema.models import EdgeConfig
 from bbox_proc.spatial.geometry import BBox
 
@@ -63,21 +65,33 @@ class Scheduler:
 
         return order
 
-    def run(self, input_bboxes: List[BBox]) -> "ExecutionResult":
+    def run(
+        self,
+        input_bboxes: Optional[List[BBox]] = None,
+        images: Optional[List[np.ndarray]] = None,
+    ) -> "ExecutionResult":
         """Execute all nodes for one frame.
 
-        Source nodes (in-degree 0) receive input_bboxes on their 'input' port.
-        All other nodes receive outputs forwarded by upstream edges.
+        Source nodes (in-degree 0) are seeded based on their declared input port type:
+        - ImageStream ports receive `images` (for DetectionNode).
+        - All other ports receive `input_bboxes` (legacy behaviour).
         """
         from bbox_proc.engine.interpreter import ExecutionResult
+
+        _bboxes = list(input_bboxes) if input_bboxes else []
+        _images = list(images) if images else []
 
         # port_data[node_id][port_name] = value
         port_data: Dict[str, Dict[str, Any]] = defaultdict(dict)
 
-        # Seed source nodes
+        # Seed source nodes based on their declared input port type
         for node_id, deg in self._in_degree.items():
             if deg == 0:
-                port_data[node_id]["input"] = list(input_bboxes)
+                node = self._nodes[node_id]
+                is_image_source = any(
+                    p.port_type == PortType.ImageStream for p in node.input_ports
+                )
+                port_data[node_id]["input"] = _images if is_image_source else _bboxes
 
         node_outputs: Dict[str, Dict[str, Any]] = {}
 

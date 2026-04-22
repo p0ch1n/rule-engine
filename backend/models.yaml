@@ -1,0 +1,19 @@
+# Model catalog — list available weight files per detector architecture.
+# Add entries here when deploying new models; restart the pipeline to pick them up.
+# Paths are resolved relative to the working directory at runtime.
+
+yolov12:
+  - name: person_detection
+    path: weights/yolov12_person.pt
+    description: Person detection model (COCO person class)
+  - name: forklift_detection
+    path: weights/yolov12_forklift.pt
+    description: Forklift / industrial vehicle detection
+
+rf_detr:
+  - name: person_detection
+    path: weights/rf_detr_person.pt
+    description: RF-DETR person detection
+  - name: forklift_detection
+    path: weights/rf_detr_forklift.pt
+    description: RF-DETR forklift detection

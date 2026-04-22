@@ -23,6 +23,12 @@ class PortType(str, Enum):
     LogicSignal = "LogicSignal"
     """Boolean trigger with attached metadata dict."""
 
+    ImageStream = "ImageStream"
+    """Stream of raw images (numpy arrays) fed into detection nodes."""
+
+    AnnotatedStream = "AnnotatedStream"
+    """Stream of AnnotatedFrames — each frame carries an image plus its BBoxes."""
+
 
 @dataclass(frozen=True)
 class PortDefinition:

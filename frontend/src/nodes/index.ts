@@ -4,19 +4,25 @@
  */
 
 import { registerNodeType } from './registry'
+import { DetectionNodeDefinition } from './DetectionNode/definition'
 import { FilterNodeDefinition } from './FilterNode/definition'
+import { ImageAnalysisNodeDefinition } from './ImageAnalysisNode/definition'
 import { MergeNodeDefinition } from './MergeNode/definition'
 import { LogicNodeDefinition } from './LogicNode/definition'
 import { RelationNodeDefinition } from './RelationNode/definition'
 
 // Register all node types
+registerNodeType(DetectionNodeDefinition)
 registerNodeType(FilterNodeDefinition)
+registerNodeType(ImageAnalysisNodeDefinition)
 registerNodeType(MergeNodeDefinition)
 registerNodeType(LogicNodeDefinition)
 registerNodeType(RelationNodeDefinition)
 
 // Re-export for convenience
+export { DetectionNodeDefinition } from './DetectionNode/definition'
 export { FilterNodeDefinition } from './FilterNode/definition'
+export { ImageAnalysisNodeDefinition } from './ImageAnalysisNode/definition'
 export { MergeNodeDefinition } from './MergeNode/definition'
 export { LogicNodeDefinition } from './LogicNode/definition'
 export { RelationNodeDefinition } from './RelationNode/definition'

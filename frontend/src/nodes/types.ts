@@ -13,17 +13,24 @@ export enum PortType {
   Collection = 'Collection',
   /** Boolean trigger with attached metadata dict */
   LogicSignal = 'LogicSignal',
+  /** Raw image frames fed into detection nodes */
+  ImageStream = 'ImageStream',
+  /** Image frames paired with their BBoxes — output of DetectionNode / ImageAnalysisNode */
+  AnnotatedStream = 'AnnotatedStream',
 }
 
 /**
  * Connection rules.
  * BoxStream → Collection is allowed so that a single-stream node (FilterNode,
  * RelationNode, …) can feed directly into a LogicNode without a Merge step.
+ * ImageStream and AnnotatedStream are self-contained and cannot cross-connect.
  */
 export const PORT_TYPE_COMPATIBILITY: Record<PortType, PortType[]> = {
   [PortType.BoxStream]: [PortType.BoxStream, PortType.Collection],
   [PortType.Collection]: [PortType.Collection],
   [PortType.LogicSignal]: [PortType.LogicSignal],
+  [PortType.ImageStream]: [PortType.ImageStream],
+  [PortType.AnnotatedStream]: [PortType.AnnotatedStream],
 }
 
 // ------------------------------------------------------------------ //

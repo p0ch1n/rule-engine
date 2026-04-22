@@ -127,16 +127,62 @@ class MergeConfig(BaseModel):
     top_k: int = Field(default=1000, ge=1)
 
 
+class DetectionConfig(BaseModel):
+    """Config for object detection source nodes."""
+
+    architecture: str = Field(min_length=1)
+    model_name: str = Field(min_length=1)
+    confidence_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    nms_threshold: float = Field(default=0.45, ge=0.0, le=1.0)
+    device: Literal["cpu", "cuda"] = "cpu"
+
+
+class ImageAnalysisField(str, Enum):
+    """Pixel measurement fields for ImageAnalysisNode (BGR channel order)."""
+
+    intensity = "intensity"      # ITU-R BT.601 luminance, 0–255
+    red = "red"                  # R channel mean, 0–255
+    green = "green"              # G channel mean, 0–255
+    blue = "blue"                # B channel mean, 0–255
+    hue = "hue"                  # HSV H channel mean, 0–360
+    saturation = "saturation"    # HSV S channel mean, 0–100
+    value = "value"              # HSV V channel mean, 0–100
+
+
+class ImageAnalysisCondition(BaseModel):
+    """A single measurement condition applied to BBoxes of a given class."""
+
+    class_name: str = ""         # empty string = applies to all classes
+    field: ImageAnalysisField
+    operator: FilterOperator
+    threshold: float = Field(ge=0.0)
+
+
+class ImageAnalysisConfig(BaseModel):
+    """Config for ImageAnalysisNode.
+
+    logic="AND": a bbox must satisfy ALL applicable conditions to survive.
+    logic="OR":  a bbox must satisfy AT LEAST ONE applicable condition to survive.
+    BBoxes whose class does not match any condition's class_name pass through unchanged.
+    """
+
+    conditions: List[ImageAnalysisCondition] = Field(min_length=1)
+    logic: FilterLogic = FilterLogic.AND
+
+
 # ------------------------------------------------------------------ #
 # Node + Edge
 # ------------------------------------------------------------------ #
 
-NodeConfigUnion = Union[FilterConfig, LogicConfig, RelationConfig, MergeConfig]
+NodeConfigUnion = Union[
+    FilterConfig, LogicConfig, RelationConfig, MergeConfig,
+    DetectionConfig, ImageAnalysisConfig,
+]
 
 
 class NodeConfig(BaseModel):
     id: str = Field(min_length=1)
-    type: Literal["filter", "logic", "relation", "merge"]
+    type: Literal["filter", "logic", "relation", "merge", "detection", "image_analysis"]
     position: Position
     config: Dict[str, Any]  # raw dict; typed parsing done in nodes
 
@@ -147,6 +193,8 @@ class NodeConfig(BaseModel):
             "logic": LogicConfig,
             "relation": RelationConfig,
             "merge": MergeConfig,
+            "detection": DetectionConfig,
+            "image_analysis": ImageAnalysisConfig,
         }
         cls = config_map[self.type]
         return cls.model_validate(self.config)
