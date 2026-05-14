@@ -49,10 +49,10 @@ export function inferAvailableClasses(
       const sourceNode = nodes.find((n) => n.id === edge.source)
       if (!sourceNode) continue
 
-      // If the upstream node is a filter, it contributes its filtered class
+      // If the upstream node is a filter, it contributes its filtered classes
       if (sourceNode.type === 'filter') {
-        const filterClass = sourceNode.data.config.class_name as string | undefined
-        if (filterClass) classes.add(filterClass)
+        const conditions = sourceNode.data.config.conditions as Array<{ className?: string }> | undefined
+        conditions?.forEach((c) => { if (c.className) classes.add(c.className) })
         // Continue walking further upstream
         walk(edge.source, depth + 1)
       } else {

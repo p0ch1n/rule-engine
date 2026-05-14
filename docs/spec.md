@@ -57,7 +57,7 @@
 
 * **Canvas Engine**: 基於 React-Flow 的畫布，負責節點渲染。
 * **Schema Inferencer**: 遞迴搜尋上游節點，推導目前可用的 `class_list`。
-* **Validation Layer**: 強型別插槽（Ports），區分 `BoxStream`, `LogicSignal`, `Collection`。
+* **Validation Layer**: 強型別插槽（Ports），區分 `ObjectStream`, `LogicSignal`, `Collection`。
 
 ### 後端組件 (Backend/Python)
 

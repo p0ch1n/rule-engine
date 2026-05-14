@@ -4,15 +4,15 @@ import math
 
 import pytest
 
-from bbox_proc.spatial.geometry import BBox
-from bbox_proc.spatial.iou import (
+from rule_execution_engine.spatial.geometry import Object
+from rule_execution_engine.spatial.iou import (
     centroid_distance_matrix,
     iou_matrix,
     iou_single,
     pairs_exceeding_iou,
     pairs_within_distance,
 )
-from bbox_proc.spatial.transform import (
+from rule_execution_engine.spatial.transform import (
     apply_offset,
     apply_scale,
     clip_to_frame,
@@ -22,15 +22,15 @@ from bbox_proc.spatial.transform import (
 
 
 # ------------------------------------------------------------------ #
-# BBox geometry
+# Object geometry
 # ------------------------------------------------------------------ #
 
 
 def make_box(x=0, y=0, w=10, h=10, conf=0.9, cls="person"):
-    return BBox(x=x, y=y, w=w, h=h, confidence=conf, class_name=cls)
+    return Object(x=x, y=y, w=w, h=h, confidence=conf, class_name=cls)
 
 
-class TestBBox:
+class TestObject:
     def test_derived_properties(self):
         b = make_box(x=5, y=10, w=20, h=30)
         assert b.x2 == 25
@@ -67,10 +67,10 @@ class TestBBox:
         assert "source" not in b.metadata
         assert b2.metadata["source"] == "test"
 
-    def test_union_bbox(self):
+    def test_union_obj(self):
         b1 = make_box(x=0, y=0, w=10, h=10)
         b2 = make_box(x=5, y=5, w=10, h=10)
-        union = b1.union_bbox(b2)
+        union = b1.union_obj(b2)
         assert union.x == 0
         assert union.y == 0
         assert union.x2 == 15

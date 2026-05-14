@@ -5,33 +5,33 @@ import { FilterNodeComponent } from './index'
 export const FilterNodeDefinition: NodeDefinition = {
   type: 'filter',
   label: 'Filter',
-  description: 'Filter BBoxes by class name and a numeric field comparison',
+  description: 'Filter Objects by class name and a numeric field comparison',
   inputPorts: [
     {
       name: 'input',
-      portType: PortType.BoxStream,
+      portType: PortType.ObjectStream,
       label: 'Input',
-      description: 'Incoming BBox stream',
+      description: 'Incoming Object stream',
     },
   ],
   outputPorts: [
     {
       name: 'output',
-      portType: PortType.BoxStream,
+      portType: PortType.ObjectStream,
       label: 'Passed',
-      description: 'BBoxes passing the filter',
+      description: 'Objects passing the filter',
     },
     {
       name: 'rejected',
-      portType: PortType.BoxStream,
+      portType: PortType.ObjectStream,
       label: 'Rejected',
-      description: 'BBoxes failing the filter',
+      description: 'Objects failing the filter',
       optional: true,
     },
   ],
   defaultConfig: {
     conditions: [
-      { class_name: '', field: 'confidence', operator: 'gt', threshold: 0.5 },
+      { className: '', field: 'confidence', operator: 'gt', threshold: 0.5 },
     ],
     logic: 'AND',
   },

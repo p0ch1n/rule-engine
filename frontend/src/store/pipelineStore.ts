@@ -62,8 +62,8 @@ interface PipelineActions {
 // ------------------------------------------------------------------ //
 
 const INITIAL_METADATA: PipelineMetadata = {
-  tool_id: 'cam-01',
-  class_list: ['person', 'car', 'truck'],
+  toolId: 'cam-01',
+  classList: ['person', 'car', 'truck'],
 }
 
 const INITIAL_STATE: PipelineState = {
@@ -102,7 +102,7 @@ export const usePipelineStore = create<PipelineState & PipelineActions>((set) =>
           label: type,
           nodeType: type,
           config: defaultConfig,
-          availableClasses: state.metadata.class_list,
+          availableClasses: state.metadata.classList,
         },
       }
       return {

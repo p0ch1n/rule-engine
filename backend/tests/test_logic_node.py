@@ -2,9 +2,9 @@
 
 import pytest
 
-from bbox_proc.nodes import LogicNode
-from bbox_proc.schema.models import NodeConfig
-from bbox_proc.spatial.geometry import BBox
+from rule_execution_engine.nodes import LogicNode
+from rule_execution_engine.schema.models import NodeConfig
+from rule_execution_engine.spatial.geometry import Object
 
 
 def make_logic_config(operation="AND", conditions=None, trigger_label="alert"):
@@ -22,8 +22,8 @@ def make_logic_config(operation="AND", conditions=None, trigger_label="alert"):
     )
 
 
-def make_bbox(cls="person", conf=0.9):
-    return BBox(x=0, y=0, w=10, h=10, confidence=conf, class_name=cls)
+def make_obj(cls="person", conf=0.9):
+    return Object(x=0, y=0, w=10, h=10, confidence=conf, class_name=cls)
 
 
 class TestLogicNode:
@@ -37,7 +37,7 @@ class TestLogicNode:
                 ],
             )
         )
-        boxes = [make_bbox("person"), make_bbox("car")]
+        boxes = [make_obj("person"), make_obj("car")]
         result = node.execute({"input": boxes})
         signal = result["signal"]
         assert signal["triggered"] is True
@@ -54,7 +54,7 @@ class TestLogicNode:
                 ],
             )
         )
-        boxes = [make_bbox("person")]
+        boxes = [make_obj("person")]
         result = node.execute({"input": boxes})
         assert result["signal"]["triggered"] is False
 
@@ -68,11 +68,11 @@ class TestLogicNode:
                 ],
             )
         )
-        boxes = [make_bbox("truck")]  # neither person nor car
+        boxes = [make_obj("truck")]  # neither person nor car
         result = node.execute({"input": boxes})
         assert result["signal"]["triggered"] is False
 
-        boxes2 = [make_bbox("person")]
+        boxes2 = [make_obj("person")]
         result2 = node.execute({"input": boxes2})
         assert result2["signal"]["triggered"] is True
 
@@ -83,17 +83,17 @@ class TestLogicNode:
                 conditions=[{"class_name": "person", "min_count": 3}],
             )
         )
-        result = node.execute({"input": [make_bbox("person"), make_bbox("person")]})
+        result = node.execute({"input": [make_obj("person"), make_obj("person")]})
         assert result["signal"]["triggered"] is False
 
         result2 = node.execute(
-            {"input": [make_bbox("person"), make_bbox("person"), make_bbox("person")]}
+            {"input": [make_obj("person"), make_obj("person"), make_obj("person")]}
         )
         assert result2["signal"]["triggered"] is True
 
     def test_trigger_label_in_signal(self):
         node = LogicNode(make_logic_config(trigger_label="zone-alert"))
-        result = node.execute({"input": [make_bbox("person")]})
+        result = node.execute({"input": [make_obj("person")]})
         assert result["signal"]["label"] == "zone-alert"
 
     def test_empty_input_does_not_trigger(self):
@@ -103,7 +103,7 @@ class TestLogicNode:
 
     def test_total_count_in_signal(self):
         node = LogicNode(make_logic_config())
-        boxes = [make_bbox("person")] * 5
+        boxes = [make_obj("person")] * 5
         result = node.execute({"input": boxes})
         assert result["signal"]["total_count"] == 5
 

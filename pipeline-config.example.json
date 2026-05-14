@@ -1,0 +1,88 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "toolId": "cam-entrance",
+    "classList": ["person"],
+    "description": "Detect persons at entrance and trigger an alert when at least one is present"
+  },
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "input",
+      "position": { "x": 50, "y": 200 },
+      "config": {
+        "sourceType": "external",
+        "files": [],
+        "frameStep": 1,
+        "maxFrames": 100
+      }
+    },
+    {
+      "id": "detection-1",
+      "type": "detection",
+      "position": { "x": 300, "y": 200 },
+      "config": {
+        "architecture": "yolov12",
+        "modelName": "person_detection",
+        "confidenceThreshold": 0.5,
+        "nmsThreshold": 0.45,
+        "device": "cpu"
+      }
+    },
+    {
+      "id": "filter-1",
+      "type": "filter",
+      "position": { "x": 560, "y": 200 },
+      "config": {
+        "conditions": [
+          {
+            "className": "person",
+            "field": "confidence",
+            "operator": "gte",
+            "threshold": 0.7
+          }
+        ],
+        "logic": "AND"
+      }
+    },
+    {
+      "id": "logic-1",
+      "type": "logic",
+      "position": { "x": 820, "y": 200 },
+      "config": {
+        "operation": "AND",
+        "conditions": [
+          {
+            "className": "person",
+            "minCount": 1,
+            "negate": false
+          }
+        ],
+        "triggerLabel": "person_detected"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-1",
+      "source": "input-1",
+      "sourcePort": "output",
+      "target": "detection-1",
+      "targetPort": "input"
+    },
+    {
+      "id": "e-2",
+      "source": "detection-1",
+      "sourcePort": "output",
+      "target": "filter-1",
+      "targetPort": "input"
+    },
+    {
+      "id": "e-3",
+      "source": "filter-1",
+      "sourcePort": "output",
+      "target": "logic-1",
+      "targetPort": "input"
+    }
+  ]
+}

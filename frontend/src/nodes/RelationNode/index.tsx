@@ -16,16 +16,16 @@ const HELP_LINES = [
   'Output Class Name: class label assigned to each output relation box.',
   '  Leave blank for auto label "A+B" (e.g. "person+car").',
   'Offset / Scale: transform the output box (e.g. expand 10%: scale sw/sh = 1.1).',
-  'Output is a BoxStream — each box represents one qualifying pair.',
+  'Output is a ObjectStream — each box represents one qualifying pair.',
 ]
 
 interface RelationConfig {
   mode: 'self_join' | 'cross_join'
-  relation_type: 'iou' | 'distance' | 'contains' | 'centroid_distance'
+  relationType: 'iou' | 'distance' | 'contains' | 'centroid_distance'
   threshold: number
-  filter_class_a: string
-  filter_class_b: string
-  output_class_name: string
+  filterClassA: string
+  filterClassB: string
+  outputClassName: string
   offset: { dx: number; dy: number; dw: number; dh: number }
   scale: { sx: number; sy: number; sw: number; sh: number }
 }
@@ -115,9 +115,9 @@ export function RelationNodeComponent({ id, data, selected }: NodeComponentProps
       <label style={{ display: 'block', marginBottom: 4 }}>
         Relation Type
         <select
-          value={config.relation_type}
+          value={config.relationType}
           onChange={(e) =>
-            set({ relation_type: e.target.value as RelationConfig['relation_type'] })
+            set({ relationType: e.target.value as RelationConfig['relationType'] })
           }
           style={{ display: 'block', width: '100%', marginTop: 2 }}
         >
@@ -142,7 +142,7 @@ export function RelationNodeComponent({ id, data, selected }: NodeComponentProps
 
       {/* Class filters */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 }}>
-        {(['filter_class_a', 'filter_class_b'] as const).map((key, idx) => {
+        {(['filterClassA', 'filterClassB'] as const).map((key, idx) => {
           const label = isCrossJoin
             ? (idx === 0 ? 'Class (Input A)' : 'Class (Input B)')
             : (idx === 0 ? 'Class A' : 'Class B')
@@ -178,8 +178,8 @@ export function RelationNodeComponent({ id, data, selected }: NodeComponentProps
         Output Class Name
         {availableClasses.length > 0 ? (
           <select
-            value={config.output_class_name}
-            onChange={(e) => set({ output_class_name: e.target.value })}
+            value={config.outputClassName}
+            onChange={(e) => set({ outputClassName: e.target.value })}
             style={{ display: 'block', width: '100%', marginTop: 2 }}
           >
             <option value="">-- auto (A+B) --</option>
@@ -189,8 +189,8 @@ export function RelationNodeComponent({ id, data, selected }: NodeComponentProps
           </select>
         ) : (
           <input
-            value={config.output_class_name}
-            onChange={(e) => set({ output_class_name: e.target.value })}
+            value={config.outputClassName}
+            onChange={(e) => set({ outputClassName: e.target.value })}
             placeholder="leave blank for auto (A+B)"
             style={{ display: 'block', width: '100%', marginTop: 2 }}
           />

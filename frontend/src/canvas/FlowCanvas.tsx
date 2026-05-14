@@ -98,7 +98,7 @@ function MetadataPanel() {
   // type commas without them being eaten by the immediate-split logic.
   const [classListDraft, setClassListDraft] = React.useState<string | null>(null)
 
-  const classListDisplay = classListDraft ?? metadata.class_list.join(', ')
+  const classListDisplay = classListDraft ?? metadata.classList.join(', ')
 
   const commitClassList = () => {
     if (classListDraft !== null) {
@@ -106,7 +106,7 @@ function MetadataPanel() {
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean)
-      updateMetadata({ class_list: classList })
+      updateMetadata({ classList })
       setClassListDraft(null)
     }
   }
@@ -129,8 +129,8 @@ function MetadataPanel() {
       <label style={{ display: 'block', marginBottom: 6 }}>
         Tool ID
         <input
-          value={metadata.tool_id}
-          onChange={(e) => updateMetadata({ tool_id: e.target.value })}
+          value={metadata.toolId}
+          onChange={(e) => updateMetadata({ toolId: e.target.value })}
           style={{ display: 'block', width: '100%', marginTop: 2 }}
         />
       </label>
@@ -272,8 +272,8 @@ function FlowCanvasInner() {
 
   // Enrich nodes with inferred class lists whenever topology changes
   const enrichedNodes = useMemo(
-    () => enrichNodesWithClasses(nodes, edges, metadata.class_list),
-    [nodes, edges, metadata.class_list]
+    () => enrichNodesWithClasses(nodes, edges, metadata.classList),
+    [nodes, edges, metadata.classList]
   )
 
   // Validate connections before accepting them

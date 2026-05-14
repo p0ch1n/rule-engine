@@ -8,11 +8,11 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from bbox_proc.detectors.catalog import ModelCatalog
-from bbox_proc.detectors.registry import DetectorRegistry
-from bbox_proc.nodes.detection_node import DetectionNode
-from bbox_proc.schema.models import NodeConfig
-from bbox_proc.spatial.geometry import BBox
+from rule_execution_engine.detectors.catalog import ModelCatalog
+from rule_execution_engine.detectors.registry import DetectorRegistry
+from rule_execution_engine.nodes.detection_node import DetectionNode
+from rule_execution_engine.schema.models import NodeConfig
+from rule_execution_engine.spatial.geometry import Object
 
 
 # ------------------------------------------------------------------ #
@@ -53,9 +53,9 @@ def _fake_image() -> np.ndarray:
     return np.zeros((480, 640, 3), dtype=np.uint8)
 
 
-SAMPLE_BBOXES: List[BBox] = [
-    BBox(x=10, y=20, w=50, h=80, confidence=0.92, class_name="person"),
-    BBox(x=200, y=100, w=60, h=40, confidence=0.75, class_name="person"),
+SAMPLE_BBOXES: List[Object] = [
+    Object(x=10, y=20, w=50, h=80, confidence=0.92, class_name="person"),
+    Object(x=200, y=100, w=60, h=40, confidence=0.75, class_name="person"),
 ]
 
 
@@ -73,7 +73,7 @@ def test_input_port_is_image_stream():
 def test_output_ports():
     node = _make_node()
     port_map = {p.name: p.port_type.value for p in node.output_ports}
-    assert port_map["output"] == "BoxStream"
+    assert port_map["output"] == "ObjectStream"
     assert port_map["annotated"] == "AnnotatedStream"
 
 
@@ -120,8 +120,8 @@ def test_execute_produces_annotated_stream():
     annotated = result["annotated"]
     assert len(annotated) == 2
     assert annotated[0].image is imgs[0]
-    assert annotated[0].bboxes == [SAMPLE_BBOXES[0]]
-    assert annotated[1].bboxes == [SAMPLE_BBOXES[1]]
+    assert annotated[0].objects == [SAMPLE_BBOXES[0]]
+    assert annotated[1].objects == [SAMPLE_BBOXES[1]]
 
 
 def test_execute_passes_thresholds_to_detector():

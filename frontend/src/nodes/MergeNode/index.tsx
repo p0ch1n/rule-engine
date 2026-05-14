@@ -5,7 +5,7 @@ import { NodeHelp } from '../NodeHelp'
 import { parseIntInput } from '@/utils/numericInput'
 
 const HELP_LINES = [
-  'Merges multiple BoxStream inputs into a single Collection.',
+  'Merges multiple ObjectStream inputs into a single Collection.',
   'Connect upstream nodes to input ports (in 0, in 1, …).',
   'All boxes are kept — no deduplication. Lineage (source port) is recorded in metadata.',
   'Top-K: keeps only the highest-confidence boxes if total exceeds the limit.',
@@ -19,11 +19,11 @@ const HANDLE_TOP_PCTS = [15, 38, 62, 85]
 
 export function MergeNodeComponent({ id, data, selected }: NodeComponentProps) {
   const updateNodeConfig = usePipelineStore((s) => s.updateNodeConfig)
-  const config = data.config as { top_k: number }
+  const config = data.config as { topK: number }
 
   const handleTopK = (raw: string) => {
     const v = parseIntInput(raw, 1)
-    if (v !== null) updateNodeConfig(id, { ...config, top_k: v })
+    if (v !== null) updateNodeConfig(id, { ...config, topK: v })
   }
 
   return (
@@ -82,7 +82,7 @@ export function MergeNodeComponent({ id, data, selected }: NodeComponentProps) {
           type="number"
           min={1}
           step={1}
-          value={config.top_k}
+          value={config.topK}
           onChange={(e) => handleTopK(e.target.value)}
           style={{ display: 'block', width: '100%', marginTop: 2 }}
         />

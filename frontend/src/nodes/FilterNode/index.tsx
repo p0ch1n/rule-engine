@@ -14,7 +14,7 @@ const OPERATOR_OPTIONS = [
 ]
 
 const HELP_LINES = [
-  'Filters a BBox stream by class and numeric criteria.',
+  'Filters a Object stream by class and numeric criteria.',
   'Add one or more conditions — each targets a class name + numeric field.',
   'AND: a box must pass ALL conditions for its class.',
   'OR:  a box must pass ANY one condition for its class.',
@@ -23,7 +23,7 @@ const HELP_LINES = [
 ]
 
 interface FilterCondition {
-  class_name: string
+  className: string
   field: string
   operator: string
   threshold: number
@@ -39,7 +39,7 @@ export function FilterNodeComponent({ id, data, selected }: NodeComponentProps) 
   const config = data.config as unknown as FilterConfig
   const availableClasses = data.availableClasses ?? []
 
-  const hasEmpty  = config.conditions.some((c) => !c.class_name)
+  const hasEmpty  = config.conditions.some((c) => !c.className)
   const isInvalid = config.conditions.length === 0 || hasEmpty
 
   const setConfig = (updates: Partial<FilterConfig>) =>
@@ -59,7 +59,7 @@ export function FilterNodeComponent({ id, data, selected }: NodeComponentProps) 
     setConfig({
       conditions: [
         ...config.conditions,
-        { class_name: '', field: 'confidence', operator: 'gt', threshold: 0.5 },
+        { className: '', field: 'confidence', operator: 'gt', threshold: 0.5 },
       ],
     })
 
@@ -153,11 +153,11 @@ export function FilterNodeComponent({ id, data, selected }: NodeComponentProps) 
             Class
             {availableClasses.length > 0 ? (
               <select
-                value={cond.class_name}
-                onChange={(e) => updateCond(i, { class_name: e.target.value })}
+                value={cond.className}
+                onChange={(e) => updateCond(i, { className: e.target.value })}
                 style={{
                   display: 'block', width: '100%', marginTop: 2,
-                  borderColor: !cond.class_name ? '#f87171' : undefined,
+                  borderColor: !cond.className ? '#f87171' : undefined,
                 }}
               >
                 <option value="">-- select --</option>
@@ -167,12 +167,12 @@ export function FilterNodeComponent({ id, data, selected }: NodeComponentProps) 
               </select>
             ) : (
               <input
-                value={cond.class_name}
-                onChange={(e) => updateCond(i, { class_name: e.target.value })}
+                value={cond.className}
+                onChange={(e) => updateCond(i, { className: e.target.value })}
                 placeholder="class name"
                 style={{
                   display: 'block', width: '100%', marginTop: 2,
-                  borderColor: !cond.class_name ? '#f87171' : undefined,
+                  borderColor: !cond.className ? '#f87171' : undefined,
                 }}
               />
             )}

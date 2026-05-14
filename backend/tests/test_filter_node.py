@@ -2,9 +2,9 @@
 
 import pytest
 
-from bbox_proc.nodes import FilterNode
-from bbox_proc.schema.models import NodeConfig
-from bbox_proc.spatial.geometry import BBox
+from rule_execution_engine.nodes import FilterNode
+from rule_execution_engine.schema.models import NodeConfig
+from rule_execution_engine.spatial.geometry import Object
 
 
 def make_node_config(config: dict) -> NodeConfig:
@@ -26,8 +26,8 @@ def single_cond(class_name="person", field="confidence", operator="gt", threshol
     }
 
 
-def make_bbox(cls="person", conf=0.8, w=50.0, h=100.0):
-    return BBox(x=0, y=0, w=w, h=h, confidence=conf, class_name=cls)
+def make_obj(cls="person", conf=0.8, w=50.0, h=100.0):
+    return Object(x=0, y=0, w=w, h=h, confidence=conf, class_name=cls)
 
 
 # ------------------------------------------------------------------ #
@@ -37,28 +37,28 @@ def make_bbox(cls="person", conf=0.8, w=50.0, h=100.0):
 class TestFilterNodeSingleCondition:
     def test_pass_high_confidence(self):
         node = FilterNode(make_node_config(single_cond(operator="gt", threshold=0.5)))
-        box = make_bbox(cls="person", conf=0.9)
+        box = make_obj(cls="person", conf=0.9)
         result = node.execute({"input": [box]})
         assert box in result["output"]
         assert box not in result["rejected"]
 
     def test_reject_low_confidence(self):
         node = FilterNode(make_node_config(single_cond(operator="gt", threshold=0.5)))
-        box = make_bbox(cls="person", conf=0.3)
+        box = make_obj(cls="person", conf=0.3)
         result = node.execute({"input": [box]})
         assert box not in result["output"]
         assert box in result["rejected"]
 
     def test_different_class_passes_through(self):
         node = FilterNode(make_node_config(single_cond(class_name="person")))
-        car = make_bbox(cls="car", conf=0.1)
+        car = make_obj(cls="car", conf=0.1)
         result = node.execute({"input": [car]})
         assert car in result["output"]
 
     def test_width_filter(self):
         node = FilterNode(make_node_config(single_cond(field="width", operator="gte", threshold=50)))
-        wide = make_bbox(cls="person", w=60)
-        narrow = make_bbox(cls="person", w=30)
+        wide = make_obj(cls="person", w=60)
+        narrow = make_obj(cls="person", w=30)
         result = node.execute({"input": [wide, narrow]})
         assert wide in result["output"]
         assert narrow in result["rejected"]
@@ -67,8 +67,8 @@ class TestFilterNodeSingleCondition:
         node = FilterNode(make_node_config(
             {"conditions": [{"class_name": "car", "field": "area", "operator": "gt", "threshold": 1000}], "logic": "AND"}
         ))
-        big   = BBox(x=0, y=0, w=50, h=50, confidence=0.9, class_name="car")   # area=2500
-        small = BBox(x=0, y=0, w=10, h=10, confidence=0.9, class_name="car")   # area=100
+        big   = Object(x=0, y=0, w=50, h=50, confidence=0.9, class_name="car")   # area=2500
+        small = Object(x=0, y=0, w=10, h=10, confidence=0.9, class_name="car")   # area=100
         result = node.execute({"input": [big, small]})
         assert big in result["output"]
         assert small in result["rejected"]
@@ -81,8 +81,8 @@ class TestFilterNodeSingleCondition:
 
     def test_eq_operator(self):
         node = FilterNode(make_node_config(single_cond(operator="eq", threshold=0.8)))
-        exact = make_bbox(conf=0.8)
-        other = make_bbox(conf=0.7)
+        exact = make_obj(conf=0.8)
+        other = make_obj(conf=0.7)
         result = node.execute({"input": [exact, other]})
         assert exact in result["output"]
         assert other in result["rejected"]
@@ -107,10 +107,10 @@ class TestFilterNodeAndLogic:
             ],
             "logic": "AND",
         }))
-        passes  = BBox(x=0, y=0, w=20, h=100, confidence=0.9, class_name="person")
-        low_h   = BBox(x=0, y=0, w=20, h=50,  confidence=0.9, class_name="person")
-        low_c   = BBox(x=0, y=0, w=20, h=100, confidence=0.3, class_name="person")
-        both_no = BBox(x=0, y=0, w=20, h=50,  confidence=0.3, class_name="person")
+        passes  = Object(x=0, y=0, w=20, h=100, confidence=0.9, class_name="person")
+        low_h   = Object(x=0, y=0, w=20, h=50,  confidence=0.9, class_name="person")
+        low_c   = Object(x=0, y=0, w=20, h=100, confidence=0.3, class_name="person")
+        both_no = Object(x=0, y=0, w=20, h=50,  confidence=0.3, class_name="person")
 
         result = node.execute({"input": [passes, low_h, low_c, both_no]})
         assert passes  in result["output"]
@@ -127,11 +127,11 @@ class TestFilterNodeAndLogic:
             ],
             "logic": "AND",
         }))
-        good_person = make_bbox(cls="person", conf=0.9)
-        bad_person  = make_bbox(cls="person", conf=0.5)
-        good_car    = make_bbox(cls="car",    conf=0.8)
-        bad_car     = make_bbox(cls="car",    conf=0.4)
-        truck       = make_bbox(cls="truck",  conf=0.1)  # no condition → pass through
+        good_person = make_obj(cls="person", conf=0.9)
+        bad_person  = make_obj(cls="person", conf=0.5)
+        good_car    = make_obj(cls="car",    conf=0.8)
+        bad_car     = make_obj(cls="car",    conf=0.4)
+        truck       = make_obj(cls="truck",  conf=0.1)  # no condition → pass through
 
         result = node.execute({"input": [good_person, bad_person, good_car, bad_car, truck]})
         assert good_person in result["output"]
@@ -155,10 +155,10 @@ class TestFilterNodeOrLogic:
             ],
             "logic": "OR",
         }))
-        high_conf_only = BBox(x=0, y=0, w=20, h=50,  confidence=0.9, class_name="person")
-        tall_only      = BBox(x=0, y=0, w=20, h=100, confidence=0.3, class_name="person")
-        both_pass      = BBox(x=0, y=0, w=20, h=100, confidence=0.9, class_name="person")
-        neither        = BBox(x=0, y=0, w=20, h=50,  confidence=0.3, class_name="person")
+        high_conf_only = Object(x=0, y=0, w=20, h=50,  confidence=0.9, class_name="person")
+        tall_only      = Object(x=0, y=0, w=20, h=100, confidence=0.3, class_name="person")
+        both_pass      = Object(x=0, y=0, w=20, h=100, confidence=0.9, class_name="person")
+        neither        = Object(x=0, y=0, w=20, h=50,  confidence=0.3, class_name="person")
 
         result = node.execute({"input": [high_conf_only, tall_only, both_pass, neither]})
         assert high_conf_only in result["output"]
@@ -174,6 +174,6 @@ class TestFilterNodeOrLogic:
             ],
             "logic": "OR",
         }))
-        tiny_low = BBox(x=0, y=0, w=10, h=10, confidence=0.5, class_name="car")
+        tiny_low = Object(x=0, y=0, w=10, h=10, confidence=0.5, class_name="car")
         result   = node.execute({"input": [tiny_low]})
         assert tiny_low in result["rejected"]

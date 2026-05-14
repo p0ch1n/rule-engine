@@ -3,11 +3,11 @@
 import json
 import pytest
 
-from bbox_proc.engine.interpreter import ExecutionResult, Interpreter, Pipeline
-from bbox_proc.nodes import NodeRegistry
-from bbox_proc.schema.models import NodeConfig, PipelineConfig
-from bbox_proc.schema.validator import ValidationError, validate_pipeline
-from bbox_proc.spatial.geometry import BBox
+from rule_execution_engine.engine.interpreter import ExecutionResult, Interpreter, Pipeline
+from rule_execution_engine.nodes import NodeRegistry
+from rule_execution_engine.schema.models import NodeConfig, PipelineConfig
+from rule_execution_engine.schema.validator import ValidationError, validate_pipeline
+from rule_execution_engine.spatial.geometry import Object
 
 
 # ------------------------------------------------------------------ #
@@ -112,11 +112,11 @@ MERGE_PIPELINE = {
 }
 
 
-def make_frame_bboxes():
+def make_frame_objects():
     return [
-        BBox(x=10, y=10, w=20, h=30, confidence=0.9, class_name="person"),
-        BBox(x=50, y=50, w=30, h=20, confidence=0.8, class_name="car"),
-        BBox(x=100, y=100, w=10, h=10, confidence=0.2, class_name="person"),  # below threshold
+        Object(x=10, y=10, w=20, h=30, confidence=0.9, class_name="person"),
+        Object(x=50, y=50, w=30, h=20, confidence=0.8, class_name="car"),
+        Object(x=100, y=100, w=10, h=10, confidence=0.2, class_name="person"),  # below threshold
     ]
 
 
@@ -159,8 +159,8 @@ class TestInterpreter:
 class TestPipelineExecution:
     def test_simple_filter_execution(self):
         pipeline = Interpreter.from_dict(SIMPLE_PIPELINE)
-        bboxes = make_frame_bboxes()
-        result = pipeline.execute_frame(bboxes)
+        objects = make_frame_objects()
+        result = pipeline.execute_frame(objects)
         assert isinstance(result, ExecutionResult)
 
         # filter-1 should pass person with conf=0.9, reject person with conf=0.2
@@ -171,8 +171,8 @@ class TestPipelineExecution:
 
     def test_merge_logic_pipeline(self):
         pipeline = Interpreter.from_dict(MERGE_PIPELINE)
-        bboxes = make_frame_bboxes()
-        result = pipeline.execute_frame(bboxes)
+        objects = make_frame_objects()
+        result = pipeline.execute_frame(objects)
 
         # Logic node should fire (person AND car both present)
         signals = result.signals()
@@ -183,16 +183,16 @@ class TestPipelineExecution:
     def test_no_trigger_when_class_absent(self):
         pipeline = Interpreter.from_dict(MERGE_PIPELINE)
         # Only persons — no car
-        bboxes = [
-            BBox(x=0, y=0, w=10, h=10, confidence=0.9, class_name="person"),
+        objects = [
+            Object(x=0, y=0, w=10, h=10, confidence=0.9, class_name="person"),
         ]
-        result = pipeline.execute_frame(bboxes)
+        result = pipeline.execute_frame(objects)
         signals = result.signals()
         assert signals["logic-1"]["triggered"] is False
 
     def test_all_outputs_returned(self):
         pipeline = Interpreter.from_dict(SIMPLE_PIPELINE)
-        result = pipeline.execute_frame(make_frame_bboxes())
+        result = pipeline.execute_frame(make_frame_objects())
         outputs = result.all_outputs()
         assert "filter-1" in outputs
 

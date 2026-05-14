@@ -5,12 +5,12 @@ import { MergeNodeComponent } from './index'
 export const MergeNodeDefinition: NodeDefinition = {
   type: 'merge',
   label: 'Merge',
-  description: 'Aggregate multiple BoxStreams into a Collection with lineage tracking',
+  description: 'Aggregate multiple ObjectStreams into a Collection with lineage tracking',
   inputPorts: [
-    { name: 'input_0', portType: PortType.BoxStream, label: 'In 0' },
-    { name: 'input_1', portType: PortType.BoxStream, label: 'In 1', optional: true },
-    { name: 'input_2', portType: PortType.BoxStream, label: 'In 2', optional: true },
-    { name: 'input_3', portType: PortType.BoxStream, label: 'In 3', optional: true },
+    { name: 'input_0', portType: PortType.ObjectStream, label: 'In 0' },
+    { name: 'input_1', portType: PortType.ObjectStream, label: 'In 1', optional: true },
+    { name: 'input_2', portType: PortType.ObjectStream, label: 'In 2', optional: true },
+    { name: 'input_3', portType: PortType.ObjectStream, label: 'In 3', optional: true },
   ],
   outputPorts: [
     {
@@ -21,7 +21,7 @@ export const MergeNodeDefinition: NodeDefinition = {
     },
   ],
   defaultConfig: {
-    top_k: 1000,
+    topK: 1000,
   },
   component: MergeNodeComponent,
 }

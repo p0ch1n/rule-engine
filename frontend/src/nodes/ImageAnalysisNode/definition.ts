@@ -5,7 +5,7 @@ import { ImageAnalysisNodeComponent } from './index'
 export const ImageAnalysisNodeDefinition: NodeDefinition = {
   type: 'image_analysis',
   label: 'Image Analysis',
-  description: 'Filter annotated frames by measuring pixel statistics (intensity, RGB, HSV) inside BBox ROIs',
+  description: 'Filter annotated frames by measuring pixel statistics (intensity, RGB, HSV) inside Object ROIs',
   inputPorts: [
     {
       name: 'input',
@@ -19,19 +19,19 @@ export const ImageAnalysisNodeDefinition: NodeDefinition = {
       name: 'output',
       portType: PortType.AnnotatedStream,
       label: 'Annotated',
-      description: 'Frames that have at least one surviving BBox',
+      description: 'Frames that have at least one surviving Object',
     },
     {
-      name: 'bboxes',
-      portType: PortType.BoxStream,
-      label: 'BBoxes',
-      description: 'Surviving BBoxes, flattened — connects to Filter, Merge, Logic nodes',
+      name: 'objects',
+      portType: PortType.ObjectStream,
+      label: 'Objects',
+      description: 'Surviving Objects, flattened — connects to Filter, Merge, Logic nodes',
       optional: true,
     },
   ],
   defaultConfig: {
     conditions: [
-      { class_name: '', field: 'intensity', operator: 'gt', threshold: 100 },
+      { className: '', field: 'intensity', operator: 'gt', threshold: 100 },
     ],
     logic: 'AND',
   },

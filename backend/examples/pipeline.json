@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "toolId": "demo",
+    "classList": ["person", "car"]
+  },
+  "nodes": [
+    {
+      "id": "filter-1",
+      "type": "filter",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "conditions": [
+          { "className": "person", "field": "confidence", "operator": "gte", "threshold": 0.7 }
+        ],
+        "logic": "AND"
+      }
+    },
+    {
+      "id": "filter-2",
+      "type": "filter",
+      "position": { "x": 100, "y": 420 },
+      "config": {
+        "conditions": [
+          { "className": "car", "field": "confidence", "operator": "gte", "threshold": 0.8 }
+        ],
+        "logic": "AND"
+      }
+    },
+    {
+      "id": "merge-1",
+      "type": "merge",
+      "position": { "x": 380, "y": 300 },
+      "config": {
+        "topK": 1000
+      }
+    },
+    {
+      "id": "logic-1",
+      "type": "logic",
+      "position": { "x": 640, "y": 300 },
+      "config": {
+        "operation": "AND",
+        "conditions": [
+          { "className": "person", "minCount": 1, "negate": false },
+          { "className": "car",    "minCount": 1, "negate": false }
+        ],
+        "triggerLabel": "person_near_car"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1", "source": "filter-1", "sourcePort": "output",   "target": "merge-1", "targetPort": "input_0" },
+    { "id": "e-2", "source": "filter-2", "sourcePort": "output",   "target": "merge-1", "targetPort": "input_1" },
+    { "id": "e-3", "source": "merge-1",  "sourcePort": "output",   "target": "logic-1", "targetPort": "input"   }
+  ]
+}

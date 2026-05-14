@@ -29,15 +29,15 @@ const OPERATOR_OPTIONS = [
 ]
 
 const HELP_LINES = [
-  'Filters annotated frames by measuring pixels inside each BBox ROI.',
+  'Filters annotated frames by measuring pixels inside each Object ROI.',
   'Images are assumed BGR channel order (OpenCV convention).',
-  'class_name empty → condition applies to all classes.',
-  'BBoxes whose class matches no condition pass through unchanged.',
-  'AND: BBox must pass ALL applicable conditions.',
-  'OR:  BBox must pass ANY one applicable condition.',
-  'Frames with zero surviving BBoxes are dropped from the output.',
+  'className empty → condition applies to all classes.',
+  'Objects whose class matches no condition pass through unchanged.',
+  'AND: Object must pass ALL applicable conditions.',
+  'OR:  Object must pass ANY one applicable condition.',
+  'Frames with zero surviving Objects are dropped from the output.',
   'Chain multiple Image Analysis nodes for compound pixel filters.',
-  'Connect "BBoxes" output to Filter / Merge / Logic nodes.',
+  'Connect "Objects" output to Filter / Merge / Logic nodes.',
 ]
 
 // ------------------------------------------------------------------ //
@@ -45,7 +45,7 @@ const HELP_LINES = [
 // ------------------------------------------------------------------ //
 
 interface AnalysisCondition {
-  class_name: string
+  className: string
   field: Field
   operator: string
   threshold: number
@@ -84,7 +84,7 @@ export function ImageAnalysisNodeComponent({ id, data, selected }: NodeComponent
     setConfig({
       conditions: [
         ...config.conditions,
-        { class_name: '', field: 'intensity', operator: 'gt', threshold: 100 },
+        { className: '', field: 'intensity', operator: 'gt', threshold: 100 },
       ],
     })
 
@@ -191,8 +191,8 @@ export function ImageAnalysisNodeComponent({ id, data, selected }: NodeComponent
               Class <span style={{ color: '#9ca3af', fontSize: 11 }}>(empty = all)</span>
               {availableClasses.length > 0 ? (
                 <select
-                  value={cond.class_name}
-                  onChange={(e) => updateCond(i, { class_name: e.target.value })}
+                  value={cond.className}
+                  onChange={(e) => updateCond(i, { className: e.target.value })}
                   style={{ display: 'block', width: '100%', marginTop: 2 }}
                 >
                   <option value="">-- all classes --</option>
@@ -202,8 +202,8 @@ export function ImageAnalysisNodeComponent({ id, data, selected }: NodeComponent
                 </select>
               ) : (
                 <input
-                  value={cond.class_name}
-                  onChange={(e) => updateCond(i, { class_name: e.target.value })}
+                  value={cond.className}
+                  onChange={(e) => updateCond(i, { className: e.target.value })}
                   placeholder="all classes"
                   style={{ display: 'block', width: '100%', marginTop: 2 }}
                 />
@@ -283,7 +283,7 @@ export function ImageAnalysisNodeComponent({ id, data, selected }: NodeComponent
       {/* Output handle labels */}
       <div style={{ marginTop: 6, fontSize: 11, color: '#6b7280', textAlign: 'right' }}>
         <div style={{ marginBottom: 14 }}>Annotated ●</div>
-        <div>BBoxes ●</div>
+        <div>Objects ●</div>
       </div>
 
       {/* AnnotatedStream output — orange */}
@@ -293,11 +293,11 @@ export function ImageAnalysisNodeComponent({ id, data, selected }: NodeComponent
         id="output"
         style={{ background: '#f97316', width: 12, height: 12, top: '70%' }}
       />
-      {/* BoxStream output — blue */}
+      {/* ObjectStream output — blue */}
       <Handle
         type="source"
         position={Position.Right}
-        id="bboxes"
+        id="objects"
         style={{ background: '#3b82f6', width: 12, height: 12, top: '85%' }}
       />
     </div>

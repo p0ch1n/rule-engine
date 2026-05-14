@@ -34,16 +34,16 @@ const HELP_LINES = [
   'Runs an object detection model on input image frames.',
   'Select an architecture, then choose a model weight.',
   'Left port (purple): ImageStream input.',
-  'Right port (blue): BoxStream output — connects to Filter, Merge, Logic, etc.',
+  'Right port (blue): ObjectStream output — connects to Filter, Merge, Logic, etc.',
   'NMS threshold is not used by transformer-based models (RF-DETR).',
   'Multiple Detection nodes can coexist in the same pipeline.',
 ]
 
 interface DetectionConfig {
   architecture: Architecture
-  model_name: string
-  confidence_threshold: number
-  nms_threshold: number
+  modelName: string
+  confidenceThreshold: number
+  nmsThreshold: number
   device: 'cpu' | 'cuda'
 }
 
@@ -56,7 +56,7 @@ export function DetectionNodeComponent({ id, data, selected }: NodeComponentProp
     : 'yolov12'
 
   const availableModels = MODELS_BY_ARCHITECTURE[architecture]
-  const isValidModel = availableModels.some((m) => m.name === config.model_name)
+  const isValidModel = availableModels.some((m) => m.name === config.modelName)
   const isInvalid = !isValidModel
 
   const setConfig = (patch: Partial<DetectionConfig>) =>
@@ -64,11 +64,11 @@ export function DetectionNodeComponent({ id, data, selected }: NodeComponentProp
 
   const handleArchChange = (arch: Architecture) => {
     const models = MODELS_BY_ARCHITECTURE[arch]
-    const stillValid = models.some((m) => m.name === config.model_name)
-    setConfig({ architecture: arch, model_name: stillValid ? config.model_name : '' })
+    const stillValid = models.some((m) => m.name === config.modelName)
+    setConfig({ architecture: arch, modelName: stillValid ? config.modelName : '' })
   }
 
-  const handleThreshold = (field: 'confidence_threshold' | 'nms_threshold', raw: string) => {
+  const handleThreshold = (field: 'confidenceThreshold' | 'nmsThreshold', raw: string) => {
     const v = parseNumericInput(raw, 0.01, 0)
     if (v !== null) setConfig({ [field]: Math.min(1, Math.max(0, v)) })
   }
@@ -91,7 +91,7 @@ export function DetectionNodeComponent({ id, data, selected }: NodeComponentProp
         boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
       }}
     >
-      {/* ImageStream input handle — purple to distinguish from BoxStream */}
+      {/* ImageStream input handle — purple to distinguish from ObjectStream */}
       <Handle
         type="target"
         position={Position.Left}
@@ -138,8 +138,8 @@ export function DetectionNodeComponent({ id, data, selected }: NodeComponentProp
       <label style={{ display: 'block', marginBottom: 6 }}>
         Model
         <select
-          value={config.model_name}
-          onChange={(e) => setConfig({ model_name: e.target.value })}
+          value={config.modelName}
+          onChange={(e) => setConfig({ modelName: e.target.value })}
           style={{
             display: 'block',
             width: '100%',
@@ -165,8 +165,8 @@ export function DetectionNodeComponent({ id, data, selected }: NodeComponentProp
             step="0.05"
             min={0}
             max={1}
-            value={config.confidence_threshold}
-            onChange={(e) => handleThreshold('confidence_threshold', e.target.value)}
+            value={config.confidenceThreshold}
+            onChange={(e) => handleThreshold('confidenceThreshold', e.target.value)}
             style={{ display: 'block', width: '100%', marginTop: 2 }}
           />
         </label>
@@ -180,9 +180,9 @@ export function DetectionNodeComponent({ id, data, selected }: NodeComponentProp
             step="0.05"
             min={0}
             max={1}
-            value={config.nms_threshold}
+            value={config.nmsThreshold}
             disabled={isRfDetr}
-            onChange={(e) => handleThreshold('nms_threshold', e.target.value)}
+            onChange={(e) => handleThreshold('nmsThreshold', e.target.value)}
             style={{ display: 'block', width: '100%', marginTop: 2 }}
           />
         </label>
@@ -205,11 +205,11 @@ export function DetectionNodeComponent({ id, data, selected }: NodeComponentProp
 
       {/* Output handles */}
       <div style={{ marginTop: 6, fontSize: 11, color: '#6b7280', textAlign: 'right' }}>
-        <div style={{ marginBottom: 14 }}>BBoxes ●</div>
+        <div style={{ marginBottom: 14 }}>Objects ●</div>
         <div>Annotated ●</div>
       </div>
 
-      {/* BoxStream output */}
+      {/* ObjectStream output */}
       <Handle
         type="source"
         position={Position.Right}

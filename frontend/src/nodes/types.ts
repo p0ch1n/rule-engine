@@ -7,15 +7,15 @@
 // ------------------------------------------------------------------ //
 
 export enum PortType {
-  /** Single-branch stream of BBox objects */
-  BoxStream = 'BoxStream',
-  /** Multi-branch aggregate of BBoxes (preserves lineage) */
+  /** Single-branch stream of Object objects */
+  ObjectStream = 'ObjectStream',
+  /** Multi-branch aggregate of Objects (preserves lineage) */
   Collection = 'Collection',
   /** Boolean trigger with attached metadata dict */
   LogicSignal = 'LogicSignal',
   /** Raw image frames fed into detection nodes */
   ImageStream = 'ImageStream',
-  /** Image frames paired with their BBoxes — output of DetectionNode / ImageAnalysisNode */
+  /** Image frames paired with their Objects — output of DetectionNode / ImageAnalysisNode */
   AnnotatedStream = 'AnnotatedStream',
   /**
    * Static reference images that do not change frame-to-frame.
@@ -30,10 +30,10 @@ export enum PortType {
  * Always reference this map in node components — do not hardcode color strings.
  *
  * @example
- * <Handle style={{ background: PORT_TYPE_COLORS[PortType.BoxStream] }} />
+ * <Handle style={{ background: PORT_TYPE_COLORS[PortType.ObjectStream] }} />
  */
 export const PORT_TYPE_COLORS: Record<PortType, string> = {
-  [PortType.BoxStream]: '#3b82f6',           // blue
+  [PortType.ObjectStream]: '#3b82f6',           // blue
   [PortType.Collection]: '#f59e0b',          // amber
   [PortType.LogicSignal]: '#22c55e',         // green
   [PortType.ImageStream]: '#7c3aed',         // purple
@@ -43,12 +43,12 @@ export const PORT_TYPE_COLORS: Record<PortType, string> = {
 
 /**
  * Connection rules.
- * BoxStream → Collection is allowed so that a single-stream node (FilterNode,
+ * ObjectStream → Collection is allowed so that a single-stream node (FilterNode,
  * RelationNode, …) can feed directly into a LogicNode without a Merge step.
  * All image-carrying types are self-contained and cannot cross-connect.
  */
 export const PORT_TYPE_COMPATIBILITY: Record<PortType, PortType[]> = {
-  [PortType.BoxStream]: [PortType.BoxStream, PortType.Collection],
+  [PortType.ObjectStream]: [PortType.ObjectStream, PortType.Collection],
   [PortType.Collection]: [PortType.Collection],
   [PortType.LogicSignal]: [PortType.LogicSignal],
   [PortType.ImageStream]: [PortType.ImageStream],
@@ -126,14 +126,14 @@ export interface PipelineNode {
 export interface PipelineEdge {
   id: string
   source: string
-  source_port: string
+  sourcePort: string
   target: string
-  target_port: string
+  targetPort: string
 }
 
 export interface PipelineMetadata {
-  tool_id: string
-  class_list: string[]
+  toolId: string
+  classList: string[]
   description?: string
 }
 

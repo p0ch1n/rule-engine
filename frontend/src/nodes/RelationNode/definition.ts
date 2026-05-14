@@ -5,17 +5,17 @@ import { RelationNodeComponent } from './index'
 export const RelationNodeDefinition: NodeDefinition = {
   type: 'relation',
   label: 'Relation',
-  description: 'Pairwise spatial relation detection (IoU / distance) — emits relation BBoxes',
+  description: 'Pairwise spatial relation detection (IoU / distance) — emits relation Objects',
   inputPorts: [
     {
       name: 'input',
-      portType: PortType.BoxStream,
+      portType: PortType.ObjectStream,
       label: 'Input A',
       description: 'Primary stream (self-join or cross-join A)',
     },
     {
       name: 'input_b',
-      portType: PortType.BoxStream,
+      portType: PortType.ObjectStream,
       label: 'Input B',
       description: 'Secondary stream for cross-join (optional)',
       optional: true,
@@ -24,18 +24,18 @@ export const RelationNodeDefinition: NodeDefinition = {
   outputPorts: [
     {
       name: 'output',
-      portType: PortType.BoxStream,
+      portType: PortType.ObjectStream,
       label: 'Relations',
-      description: 'Relation BBoxes for qualifying pairs',
+      description: 'Relation Objects for qualifying pairs',
     },
   ],
   defaultConfig: {
     mode: 'self_join',
-    relation_type: 'iou',
+    relationType: 'iou',
     threshold: 0.3,
-    filter_class_a: '',
-    filter_class_b: '',
-    output_class_name: '',
+    filterClassA: '',
+    filterClassB: '',
+    outputClassName: '',
     offset: { dx: 0, dy: 0, dw: 0, dh: 0 },
     scale: { sx: 1, sy: 1, sw: 1, sh: 1 },
   },

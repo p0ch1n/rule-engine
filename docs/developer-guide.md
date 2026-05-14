@@ -14,6 +14,7 @@ This guide explains how to add a new processing node to rule-engine. The system 
    - [Frame-by-frame Processing Node](#51-frame-by-frame-processing-node)
    - [Self-seeding Reference Image Node](#52-self-seeding-reference-image-node)
    - [Template Matching Node (end-to-end example)](#53-template-matching-node-end-to-end-example)
+   - [Dynamic-Mode Source Node (InputNode Pattern)](#54-dynamic-mode-source-node-inputnode-pattern)
 6. [Schema and Serialization](#6-schema-and-serialization)
 7. [Testing Requirements](#7-testing-requirements)
 8. [Checklist](#8-checklist)
@@ -28,11 +29,11 @@ Every connection in the pipeline carries a typed value. Connecting ports of inco
 
 | Type | Backend enum | Frontend enum | Color | Carries |
 |------|-------------|---------------|-------|---------|
-| `BoxStream` | `PortType.BoxStream` | `PortType.BoxStream` | `#3b82f6` blue | `List[BBox]` |
-| `Collection` | `PortType.Collection` | `PortType.Collection` | `#f59e0b` amber | `List[BBox]` with lineage metadata |
+| `ObjectStream` | `PortType.ObjectStream` | `PortType.ObjectStream` | `#3b82f6` blue | `List[Object]` |
+| `Collection` | `PortType.Collection` | `PortType.Collection` | `#f59e0b` amber | `List[Object]` with lineage metadata |
 | `LogicSignal` | `PortType.LogicSignal` | `PortType.LogicSignal` | `#22c55e` green | `bool` + metadata dict |
 | `ImageStream` | `PortType.ImageStream` | `PortType.ImageStream` | `#7c3aed` purple | `List[np.ndarray]` — per-frame pipeline input |
-| `AnnotatedStream` | `PortType.AnnotatedStream` | `PortType.AnnotatedStream` | `#f97316` orange | `List[AnnotatedFrame]` — image + bbox pairs |
+| `AnnotatedStream` | `PortType.AnnotatedStream` | `PortType.AnnotatedStream` | `#f97316` orange | `List[AnnotatedFrame]` — image + obj pairs |
 | `ReferenceImageStream` | `PortType.ReferenceImageStream` | `PortType.ReferenceImageStream` | `#e11d48` rose | `List[np.ndarray]` — static config-time images |
 
 ### Key Distinction: ImageStream vs ReferenceImageStream
@@ -49,8 +50,8 @@ Every connection in the pipeline carries a typed value. Connecting ports of inco
 A source port can only connect to a target port of the same type, with one exception:
 
 ```
-BoxStream  →  BoxStream   ✓
-BoxStream  →  Collection  ✓  (single-stream shortcut to LogicNode)
+ObjectStream  →  ObjectStream   ✓
+ObjectStream  →  Collection  ✓  (single-stream shortcut to LogicNode)
 Collection →  Collection  ✓
 LogicSignal → LogicSignal ✓
 ImageStream → ImageStream ✓
@@ -82,9 +83,12 @@ Before implementing, decide which category your node falls into:
 | Category | input_ports | Scheduler behavior | Example |
 |---|---|---|---|
 | **Pipeline-input source** | `[PortDefinition("input", PortType.ImageStream)]` | Injected with `images` from `execute_frame` | `DetectionNode` |
-| **BBox-input source** | `[PortDefinition("input", PortType.BoxStream)]` | Injected with `input_bboxes` from `execute_frame` | legacy source nodes |
-| **Self-seeding source** | `[]` (empty list) | Not injected — receives `{}`, loads own data | `TemplateLoaderNode` |
+| **Object-input source** | `[PortDefinition("input", PortType.ObjectStream)]` | Injected with `input_objects` from `execute_frame` | legacy source nodes |
+| **Self-seeding source** | `[]` (empty list) | Not injected — receives `{}`, loads own data | `TemplateLoaderNode`, `InputNode` (images/video mode) |
+| **Dynamic-mode source** | `[]` or `[ImageStream]` — determined at runtime from config | Self-seeding OR injected depending on `source_type` config field | `InputNode` |
 | **Processing node** | one or more ports | Receives upstream outputs via edges | `FilterNode`, `ImageAnalysisNode` |
+
+`InputNode` is the only built-in node whose `input_ports` changes based on config. See §5.4 for the pattern.
 
 ---
 
@@ -92,7 +96,7 @@ Before implementing, decide which category your node falls into:
 
 ### Step 1: Create the node file
 
-Create `backend/bbox_proc/nodes/your_node.py`.
+Create `backend/rule_execution_engine/nodes/your_node.py`. **The config class lives in the same file** — no changes to `schema/models.py` are needed.
 
 ```python
 """YourNode — one-line description."""
@@ -101,68 +105,66 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from bbox_proc.nodes.base import BaseNode, PortDefinition, PortType
-from bbox_proc.nodes.registry import NodeRegistry
-from bbox_proc.schema.models import NodeConfig
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
+from rule_execution_engine.nodes.base import BaseNode, PortDefinition, PortType
+from rule_execution_engine.nodes.registry import NodeRegistry
 
 
-@NodeRegistry.register("your_type")   # must match JSON schema "type" value
+class YourNodeConfig(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    # add any other config fields here
+
+
+@NodeRegistry.register("your_type", config_class=YourNodeConfig)
 class YourNode(BaseNode):
 
     @property
     def input_ports(self) -> List[PortDefinition]:
         return [
-            PortDefinition("input", PortType.BoxStream, "Incoming bounding boxes"),
+            PortDefinition("input", PortType.ObjectStream, "Incoming bounding boxes"),
         ]
 
     @property
     def output_ports(self) -> List[PortDefinition]:
         return [
-            PortDefinition("output", PortType.BoxStream, "Filtered bounding boxes"),
+            PortDefinition("output", PortType.ObjectStream, "Filtered bounding boxes"),
         ]
 
     def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        bboxes = self._get_bboxes(inputs, "input")
-        result = [b for b in bboxes if self._passes(b)]
+        objects = self._get_objects(inputs, "input")
+        result = [b for b in objects if self._passes(b)]
         return {"output": result}
 
-    def _passes(self, bbox) -> bool:
+    def _passes(self, obj) -> bool:
         ...
 ```
 
 ### Step 2: Register the import
 
-Add one line to `backend/bbox_proc/nodes/__init__.py`:
+Add one line to `backend/rule_execution_engine/nodes/__init__.py`:
 
 ```python
-from bbox_proc.nodes import your_node as _your_node  # noqa: F401
+from rule_execution_engine.nodes import your_node as _your_node  # noqa: F401
 ```
 
 That is all. `NodeRegistry.create(config)` will find the new type automatically.
 
-### Parsed Config Pattern
+### Accessing Config in execute()
 
-Parse the raw `config` dict into a typed dataclass in `__init__`:
+`BaseNode.__init__` calls `config.parse_config()`, which looks up the registered `config_class` and returns a typed instance as `self._parsed_config`. Cast it to your config type inside `execute()`:
 
 ```python
-from dataclasses import dataclass
-
-@dataclass
-class YourNodeConfig:
-    threshold: float = 0.5
-
-class YourNode(BaseNode):
-    def __init__(self, config: NodeConfig) -> None:
-        super().__init__(config)
-        raw = config.config or {}
-        self._cfg = YourNodeConfig(
-            threshold=float(raw.get("threshold", 0.5)),
-        )
+def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+    cfg: YourNodeConfig = self._parsed_config  # type: ignore[assignment]
+    ...
 ```
 
-### BBox is Immutable
+### Object is Immutable
 
-`BBox` is a frozen dataclass. All spatial transforms return new instances. Never modify a BBox in place.
+`Object` is a frozen dataclass. All spatial transforms return new instances. Never modify a Object in place.
 
 ### Python 3.9 Compatibility
 
@@ -203,15 +205,15 @@ export const YourNodeDefinition: NodeDefinition = {
   inputPorts: [
     {
       name: 'input',
-      portType: PortType.BoxStream,
-      label: 'BBoxes',
+      portType: PortType.ObjectStream,
+      label: 'Objects',
       description: 'Incoming bounding boxes',
     },
   ],
   outputPorts: [
     {
       name: 'output',
-      portType: PortType.BoxStream,
+      portType: PortType.ObjectStream,
       label: 'Filtered',
       description: 'Filtered bounding boxes',
     },
@@ -242,7 +244,7 @@ export function YourNodeComponent({ id, data, selected }: NodeComponentProps) {
         type="target"
         position={Position.Left}
         id="input"
-        style={{ background: PORT_TYPE_COLORS[PortType.BoxStream], width: 12, height: 12 }}
+        style={{ background: PORT_TYPE_COLORS[PortType.ObjectStream], width: 12, height: 12 }}
       />
 
       <div style={{ fontWeight: 600, marginBottom: 8 }}>{data.label}</div>
@@ -258,7 +260,7 @@ export function YourNodeComponent({ id, data, selected }: NodeComponentProps) {
         type="source"
         position={Position.Right}
         id="output"
-        style={{ background: PORT_TYPE_COLORS[PortType.BoxStream], width: 12, height: 12 }}
+        style={{ background: PORT_TYPE_COLORS[PortType.ObjectStream], width: 12, height: 12 }}
       />
     </div>
   )
@@ -279,24 +281,24 @@ import './YourNode'
 
 ### 5.1 Frame-by-frame Processing Node
 
-Receives `AnnotatedStream` (image + bboxes), does per-bbox ROI analysis, outputs filtered result.
+Receives `AnnotatedStream` (image + objects), does per-obj ROI analysis, outputs filtered result.
 
 ```python
 def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
     frames: List[AnnotatedFrame] = inputs.get("input", [])
     out_frames: List[AnnotatedFrame] = []
-    out_bboxes: List[BBox] = []
+    out_objects: List[Object] = []
 
     for frame in frames:
-        survivors = [b for b in frame.bboxes if self._analyze_roi(frame.image, b)]
+        survivors = [b for b in frame.objects if self._analyze_roi(frame.image, b)]
         if survivors:
-            out_frames.append(frame.with_bboxes(survivors))   # shares image ref, no copy
-            out_bboxes.extend(survivors)
+            out_frames.append(frame.with_objects(survivors))   # shares image ref, no copy
+            out_objects.extend(survivors)
 
-    return {"output": out_frames, "bboxes": out_bboxes}
+    return {"output": out_frames, "objects": out_objects}
 ```
 
-`AnnotatedFrame.with_bboxes()` returns a new frame sharing the same image array (zero copy).
+`AnnotatedFrame.with_objects()` returns a new frame sharing the same image array (zero copy).
 
 ### 5.2 Self-seeding Reference Image Node
 
@@ -336,7 +338,7 @@ class TemplateLoaderNode(BaseNode):
 
 ### 5.3 Template Matching Node (end-to-end example)
 
-A node that receives both target frames (`AnnotatedStream`) and a reference template (`ReferenceImageStream`), filters bboxes whose ROI matches the template above a threshold.
+A node that receives both target frames (`AnnotatedStream`) and a reference template (`ReferenceImageStream`), filters objects whose ROI matches the template above a threshold.
 
 **Backend:**
 
@@ -355,7 +357,7 @@ class TemplateMatchNode(BaseNode):
     def output_ports(self) -> List[PortDefinition]:
         return [
             PortDefinition("output", PortType.AnnotatedStream, "Matched frames"),
-            PortDefinition("bboxes", PortType.BoxStream,       "Matched bboxes (flat)"),
+            PortDefinition("objects", PortType.ObjectStream,       "Matched objects (flat)"),
         ]
 
     def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -363,22 +365,22 @@ class TemplateMatchNode(BaseNode):
         templates: List[np.ndarray]     = inputs.get("template", [])
 
         if not templates:
-            return {"output": [], "bboxes": []}
+            return {"output": [], "objects": []}
 
         template = templates[0]   # use first reference image
         cfg = self._cfg
 
-        out_frames, out_bboxes = [], []
+        out_frames, out_objects = [], []
         for frame in frames:
             survivors = [
-                b for b in frame.bboxes
+                b for b in frame.objects
                 if self._match_score(frame.image, b, template) >= cfg.threshold
             ]
             if survivors:
-                out_frames.append(frame.with_bboxes(survivors))
-                out_bboxes.extend(survivors)
+                out_frames.append(frame.with_objects(survivors))
+                out_objects.extend(survivors)
 
-        return {"output": out_frames, "bboxes": out_bboxes}
+        return {"output": out_frames, "objects": out_objects}
 ```
 
 **Canvas wiring:**
@@ -386,7 +388,7 @@ class TemplateMatchNode(BaseNode):
 ```
 TemplateLoaderNode ──(ReferenceImageStream)──► TemplateMatchNode.template
 DetectionNode.annotated ─(AnnotatedStream)───► TemplateMatchNode.input
-TemplateMatchNode.bboxes ──(BoxStream)────────► LogicNode
+TemplateMatchNode.objects ──(ObjectStream)────────► LogicNode
 ```
 
 **Frontend definition:**
@@ -398,9 +400,49 @@ inputPorts: [
 ],
 outputPorts: [
   { name: 'output', portType: PortType.AnnotatedStream, label: 'Matched frames' },
-  { name: 'bboxes', portType: PortType.BoxStream,       label: 'Matched BBoxes' },
+  { name: 'objects', portType: PortType.ObjectStream,       label: 'Matched Objects' },
 ],
 ```
+
+### 5.4 Dynamic-Mode Source Node (InputNode Pattern)
+
+`InputNode` demonstrates a node whose `input_ports` property is **not static** — it returns different values based on the `source_type` field in config. This lets a single node behave as either a self-seeding embedded source or a runtime-injectable source, without any changes to the scheduler.
+
+```python
+@property
+def input_ports(self) -> List[PortDefinition]:
+    cfg: InputNodeConfig = self._parsed_config
+    if cfg.source_type == InputSourceType.external:
+        # scheduler will inject images from execute_frame(images=[...])
+        return [PortDefinition("input", PortType.ImageStream, "Frames from execute_frame(images=[...])")]
+    # images / video: self-seeding; scheduler leaves this node alone
+    return []
+
+def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+    cfg: InputNodeConfig = self._parsed_config
+    if cfg.source_type == InputSourceType.external:
+        return {"output": inputs.get("input", [])}  # pure pass-through
+    if self._cache is None:
+        self._cache = self._load_frames()            # decode base64 files once
+    return {"output": self._cache}
+```
+
+**Why this works**: The scheduler calls `node.input_ports` once per `Pipeline.execute_frame()` call to determine which nodes to seed. When the JSON config field `sourceType` is `"external"`, `input_ports` returns `[ImageStream]`, so the scheduler injects the images passed by the caller. When `sourceType` is `"images"` or `"video"`, `input_ports` returns `[]`, so the scheduler skips it and the node self-seeds from its cached decoded files.
+
+**Deployment workflow**:
+
+1. Designer builds pipeline in UI, uploads test images, verifies results.
+2. Designer switches InputNode to **External** mode and exports `pipeline.json`.
+3. In production code:
+
+```python
+pipeline = Interpreter.load("pipeline.json")
+
+# InputNode is now in external mode — it will pass images through to DetectionNode
+result = pipeline.execute_frame(images=[bgr_frame])
+```
+
+No other pipeline changes needed. The same `pipeline.json` works in both modes.
 
 ---
 
@@ -411,11 +453,33 @@ outputPorts: [
 ```json
 "type": {
   "type": "string",
-  "enum": ["filter", "logic", "relation", "merge", "detection", "image_analysis", "template_loader", "template_match"]
+  "enum": ["filter", "logic", "relation", "merge", "detection", "image_analysis", "input", "template_loader", "template_match"]
 }
 ```
 
 The schema does **not** encode port types — type safety is enforced in application code only.
+
+### camelCase Keys
+
+The JSON schema uses **camelCase keys throughout** (e.g., `sourcePort`, `targetPort`, `className`, `minCount`, `modelName`, `sourceType`). Python attributes in backend code remain snake_case as usual — camelCase is for JSON serialization only.
+
+Every node config class must include a `ConfigDict` so that Pydantic accepts both forms:
+
+```python
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
+
+class YourNodeConfig(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    # Fields use snake_case in Python; camelCase in JSON via the alias generator.
+```
+
+- `alias_generator=to_camel` — JSON produced by the frontend (and validated against the schema) uses camelCase keys.
+- `populate_by_name=True` — Python code and tests can still pass snake_case field names directly.
+
+### `functionId` field
+
+Each node in the pipeline may carry an optional `functionId` string at the top level of its `NodeConfig`. This field is used for function/step binding in external systems and is passed through unchanged by the execution engine.
 
 ---
 
@@ -428,7 +492,7 @@ Minimum 80% line coverage. Write tests in `backend/tests/test_your_node.py`.
 1. **Happy path** — node processes valid input and returns expected output.
 2. **Empty input** — `execute({})` or `execute({"input": []})` returns `{"output": []}` without crashing.
 3. **Config parsing** — config defaults are applied correctly; invalid values raise early.
-4. **Immutability** — output BBoxes are not the same objects as input BBoxes when transforms are applied.
+4. **Immutability** — output Objects are not the same objects as input Objects when transforms are applied.
 
 ### Self-seeding node tests
 
@@ -441,9 +505,9 @@ For reference image loader nodes, mock the filesystem call (`cv2.imread`) and ve
 
 ```python
 import pytest
-from bbox_proc.nodes.your_node import YourNode
-from bbox_proc.schema.models import NodeConfig
-from bbox_proc.spatial.geometry import BBox
+from rule_execution_engine.nodes.your_node import YourNode
+from rule_execution_engine.schema.models import NodeConfig
+from rule_execution_engine.spatial.geometry import Object
 
 def _make_node(config: dict | None = None) -> YourNode:
     nc = NodeConfig(id="test", type="your_type", position={"x": 0, "y": 0}, config=config or {})
@@ -456,8 +520,8 @@ def test_empty_input_returns_empty():
 
 def test_filters_correctly():
     node = _make_node({"threshold": 0.5})
-    bbox = BBox(x=0, y=0, w=10, h=10, confidence=0.8, class_name="cat")
-    result = node.execute({"input": [bbox]})
+    obj = Object(x=0, y=0, w=10, h=10, confidence=0.8, class_name="cat")
+    result = node.execute({"input": [obj]})
     assert len(result["output"]) == 1
 ```
 
@@ -472,9 +536,9 @@ Before opening a PR for a new node:
 - [ ] `input_ports` and `output_ports` declared correctly
 - [ ] `execute()` handles empty inputs gracefully
 - [ ] Config parsed to typed dataclass in `__init__`
-- [ ] `BBox` objects never mutated — transforms return new instances
+- [ ] `Object` objects never mutated — transforms return new instances
 - [ ] `List[T]` / `Dict[K, V]` used (Python 3.9 compat)
-- [ ] Import added to `bbox_proc/nodes/__init__.py`
+- [ ] Import added to `rule_execution_engine/nodes/__init__.py`
 - [ ] Tests written and coverage ≥ 80%
 
 **Frontend**

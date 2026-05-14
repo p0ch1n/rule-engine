@@ -26,14 +26,12 @@ export function exportPipeline(
     config: n.data.config,
   }))
 
-  // Map React Flow edges → pipeline edges
-  // React Flow uses sourceHandle / targetHandle; we map to source_port / target_port
   const pipelineEdges = edges.map((e) => ({
     id: e.id,
     source: e.source,
-    source_port: e.sourceHandle ?? 'output',
+    sourcePort: e.sourceHandle ?? 'output',
     target: e.target,
-    target_port: e.targetHandle ?? 'input',
+    targetPort: e.targetHandle ?? 'input',
   }))
 
   return {
@@ -105,16 +103,16 @@ export function importPipeline(json: PipelineJSON): {
       label: n.type,
       nodeType: n.type,
       config: n.config,
-      availableClasses: json.metadata.class_list,
+      availableClasses: json.metadata.classList,
     },
   }))
 
   const edges: Edge[] = json.edges.map((e) => ({
     id: e.id,
     source: e.source,
-    sourceHandle: e.source_port,
+    sourceHandle: e.sourcePort,
     target: e.target,
-    targetHandle: e.target_port,
+    targetHandle: e.targetPort,
   }))
 
   return { nodes, edges, metadata: json.metadata }

@@ -103,10 +103,10 @@ Computes spatial relationships between pairs of bounding boxes and produces new 
 | `filter_class_a` | string | No | `""` | Restrict side-A boxes to this class. Empty or omitted means all classes. |
 | `filter_class_b` | string | No | `""` | Restrict side-B boxes to this class (cross_join only). Empty or omitted means all classes. |
 | `output_class_name` | string | No | `""` | Class name stamped on each output relation box. If empty, the backend auto-generates an `"A+B"` label derived from the two source classes. |
-| `offset` | BBoxOffset | No | zeroes | Pixel offset applied to the union bounding box of each qualifying pair. |
-| `scale` | BBoxScale | No | ones | Scale factors applied to the union bounding box after the offset. |
+| `offset` | ObjectOffset | No | zeroes | Pixel offset applied to the union bounding box of each qualifying pair. |
+| `scale` | ObjectScale | No | ones | Scale factors applied to the union bounding box after the offset. |
 
-#### `BBoxOffset`
+#### `ObjectOffset`
 
 Adds a fixed pixel delta to the generated relation box.
 
@@ -117,7 +117,7 @@ Adds a fixed pixel delta to the generated relation box.
 | `dw` | number | `0` | Width adjustment (positive = wider). |
 | `dh` | number | `0` | Height adjustment (positive = taller). |
 
-#### `BBoxScale`
+#### `ObjectScale`
 
 Multiplies the generated relation box dimensions after offset is applied.
 
@@ -132,7 +132,7 @@ Multiplies the generated relation box dimensions after offset is applied.
 
 ### `MergeConfig` — type `"merge"`
 
-Collects multiple `BoxStream` inputs into a single `Collection`, deduplicating or truncating by confidence score.
+Collects multiple `ObjectStream` inputs into a single `Collection`, deduplicating or truncating by confidence score.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
@@ -148,7 +148,7 @@ Directed connection from one node's output port to another's input port.
 |-------|------|----------|-------------|
 | `id` | string | Yes | Unique edge identifier within the pipeline. |
 | `source` | string | Yes | `id` of the originating node. |
-| `source_port` | string | Yes | Output port name on the source node (e.g. `"output"`, `"triggered"`, `"bboxes"`). |
+| `source_port` | string | Yes | Output port name on the source node (e.g. `"output"`, `"triggered"`, `"objects"`). |
 | `target` | string | Yes | `id` of the receiving node. |
 | `target_port` | string | Yes | Input port name on the target node (e.g. `"input"`, `"input_a"`, `"input_b"`). |
 

@@ -14,14 +14,14 @@
     },
     "metadata": {
       "type": "object",
-      "required": ["tool_id", "class_list"],
+      "required": ["toolId", "classList"],
       "additionalProperties": false,
       "properties": {
-        "tool_id": {
+        "toolId": {
           "type": "string",
           "minLength": 1
         },
-        "class_list": {
+        "classList": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
           "minItems": 1,
@@ -30,11 +30,11 @@
         "description": {
           "type": "string"
         },
-        "created_at": {
+        "createdAt": {
           "type": "string",
           "format": "date-time"
         },
-        "updated_at": {
+        "updatedAt": {
           "type": "string",
           "format": "date-time"
         }
@@ -71,25 +71,30 @@
         },
         "type": {
           "type": "string",
-          "enum": ["filter", "logic", "relation", "merge"]
+          "enum": ["filter", "logic", "relation", "merge", "detection", "image_analysis", "input"]
         },
         "position": { "$ref": "#/definitions/Position" },
+        "functionId": {
+          "type": "string",
+          "description": "Optional identifier reserved for function/step binding"
+        },
         "config": {
           "oneOf": [
             { "$ref": "#/definitions/FilterConfig" },
             { "$ref": "#/definitions/LogicConfig" },
             { "$ref": "#/definitions/RelationConfig" },
-            { "$ref": "#/definitions/MergeConfig" }
+            { "$ref": "#/definitions/MergeConfig" },
+            { "$ref": "#/definitions/InputConfig" }
           ]
         }
       }
     },
     "FilterCondition": {
       "type": "object",
-      "required": ["class_name", "field", "operator", "threshold"],
+      "required": ["className", "field", "operator", "threshold"],
       "additionalProperties": false,
       "properties": {
-        "class_name": { "type": "string", "minLength": 1 },
+        "className": { "type": "string", "minLength": 1 },
         "field": { "type": "string", "enum": ["confidence", "width", "height", "area"] },
         "operator": { "type": "string", "enum": ["gt", "gte", "lt", "lte", "eq"] },
         "threshold": { "type": "number", "minimum": 0 }
@@ -109,7 +114,7 @@
           "type": "string",
           "enum": ["AND", "OR"],
           "default": "AND",
-          "description": "AND: bbox must pass ALL conditions for its class; OR: at least one"
+          "description": "AND: obj must pass ALL conditions for its class; OR: at least one"
         }
       }
     },
@@ -126,17 +131,17 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["class_name"],
+            "required": ["className"],
             "additionalProperties": false,
             "properties": {
-              "class_name": { "type": "string", "minLength": 1 },
-              "min_count": { "type": "integer", "minimum": 1, "default": 1 },
-              "negate": { "type": "boolean", "default": false, "description": "When true, condition is satisfied when count < min_count (class absent)" }
+              "className": { "type": "string", "minLength": 1 },
+              "minCount": { "type": "integer", "minimum": 1, "default": 1 },
+              "negate": { "type": "boolean", "default": false, "description": "When true, condition is satisfied when count < minCount (class absent)" }
             }
           },
           "minItems": 1
         },
-        "trigger_label": {
+        "triggerLabel": {
           "type": "string",
           "description": "Label included in trigger metadata when condition fires"
         }
@@ -152,7 +157,7 @@
           "enum": ["self_join", "cross_join"],
           "description": "self_join: single input pairwise; cross_join: two inputs"
         },
-        "relation_type": {
+        "relationType": {
           "type": "string",
           "enum": ["iou", "distance", "contains", "centroid_distance"],
           "default": "iou"
@@ -162,24 +167,24 @@
           "minimum": 0,
           "description": "IoU or distance threshold for relation to qualify"
         },
-        "filter_class_a": {
+        "filterClassA": {
           "type": "string",
           "description": "Only use boxes of this class for side A. Leave empty to use all classes."
         },
-        "filter_class_b": {
+        "filterClassB": {
           "type": "string",
           "description": "Only use boxes of this class for side B. Leave empty to use all classes."
         },
-        "output_class_name": {
+        "outputClassName": {
           "type": "string",
-          "description": "Class name assigned to each output relation BBox. Leave empty to use the auto-generated 'A+B' label."
+          "description": "Class name assigned to each output relation Object. Leave empty to use the auto-generated 'A+B' label."
         },
         "offset": {
-          "$ref": "#/definitions/BBoxOffset",
-          "description": "Geometric offset applied to the generated relation BBox"
+          "$ref": "#/definitions/ObjectOffset",
+          "description": "Geometric offset applied to the generated relation Object"
         },
         "scale": {
-          "$ref": "#/definitions/BBoxScale"
+          "$ref": "#/definitions/ObjectScale"
         }
       }
     },
@@ -187,15 +192,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "top_k": {
+        "topK": {
           "type": "integer",
           "minimum": 1,
           "default": 1000,
-          "description": "Max BBoxes retained after merge, ordered by confidence desc"
+          "description": "Max Objects retained after merge, ordered by confidence desc"
         }
       }
     },
-    "BBoxOffset": {
+    "ObjectOffset": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -205,7 +210,7 @@
         "dh": { "type": "number", "default": 0 }
       }
     },
-    "BBoxScale": {
+    "ObjectScale": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -215,9 +220,47 @@
         "sh": { "type": "number", "minimum": 0, "default": 1.0 }
       }
     },
+    "InputFile": {
+      "type": "object",
+      "required": ["filename", "data"],
+      "additionalProperties": false,
+      "properties": {
+        "filename": { "type": "string", "minLength": 1 },
+        "data": { "type": "string", "minLength": 1, "description": "Base64 data URI of the uploaded file" }
+      }
+    },
+    "InputConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "enum": ["images", "video", "external"],
+          "default": "images",
+          "description": "images/video: base64 files embedded in config (UI/prototype); external: images injected via execute_frame(images=[...]) at runtime (deployment)"
+        },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/InputFile" },
+          "default": []
+        },
+        "frameStep": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Extract every Nth frame (video mode only)"
+        },
+        "maxFrames": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 100,
+          "description": "Maximum number of frames to extract from video"
+        }
+      }
+    },
     "EdgeConfig": {
       "type": "object",
-      "required": ["id", "source", "source_port", "target", "target_port"],
+      "required": ["id", "source", "sourcePort", "target", "targetPort"],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -229,7 +272,7 @@
           "minLength": 1,
           "description": "Source node id"
         },
-        "source_port": {
+        "sourcePort": {
           "type": "string",
           "minLength": 1
         },
@@ -238,7 +281,7 @@
           "minLength": 1,
           "description": "Target node id"
         },
-        "target_port": {
+        "targetPort": {
           "type": "string",
           "minLength": 1
         }

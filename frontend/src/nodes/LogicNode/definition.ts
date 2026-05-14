@@ -11,7 +11,7 @@ export const LogicNodeDefinition: NodeDefinition = {
       name: 'input',
       portType: PortType.Collection,
       label: 'Collection',
-      description: 'Merged BBox collection to evaluate',
+      description: 'Merged Object collection to evaluate',
     },
   ],
   outputPorts: [
@@ -24,8 +24,8 @@ export const LogicNodeDefinition: NodeDefinition = {
   ],
   defaultConfig: {
     operation: 'AND',
-    conditions: [{ class_name: '', min_count: 1, negate: false }],
-    trigger_label: '',
+    conditions: [{ className: '', minCount: 1, negate: false }],
+    triggerLabel: '',
   },
   component: LogicNodeComponent,
 }

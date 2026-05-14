@@ -5,7 +5,7 @@ import { DetectionNodeComponent } from './index'
 export const DetectionNodeDefinition: NodeDefinition = {
   type: 'detection',
   label: 'Detection',
-  description: 'Run an object detection model on input images and output a BBox stream',
+  description: 'Run an object detection model on input images and output a Object stream',
   inputPorts: [
     {
       name: 'input',
@@ -17,23 +17,23 @@ export const DetectionNodeDefinition: NodeDefinition = {
   outputPorts: [
     {
       name: 'output',
-      portType: PortType.BoxStream,
-      label: 'BBoxes',
+      portType: PortType.ObjectStream,
+      label: 'Objects',
       description: 'Detected bounding boxes, flattened across all input frames',
     },
     {
       name: 'annotated',
       portType: PortType.AnnotatedStream,
       label: 'Annotated',
-      description: 'Image + per-frame BBox pairs — connect to ImageAnalysisNode',
+      description: 'Image + per-frame Object pairs — connect to ImageAnalysisNode',
       optional: true,
     },
   ],
   defaultConfig: {
     architecture: 'yolov12',
-    model_name: '',
-    confidence_threshold: 0.5,
-    nms_threshold: 0.45,
+    modelName: '',
+    confidenceThreshold: 0.5,
+    nmsThreshold: 0.45,
     device: 'cpu',
   },
   component: DetectionNodeComponent,

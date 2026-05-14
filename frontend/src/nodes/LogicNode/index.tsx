@@ -6,26 +6,26 @@ import { parseIntInput } from '@/utils/numericInput'
 
 const HELP_LINES = [
   'Checks whether certain object classes exist in the input boxes.',
-  'Connect a Merge node output OR any BoxStream (Filter, Relation) to the left port.',
+  'Connect a Merge node output OR any ObjectStream (Filter, Relation) to the left port.',
   'AND: ALL listed conditions must pass to trigger.',
   'OR:  ANY one condition passing triggers the signal.',
   '"Min count" sets how many boxes of that class are required.',
-  'NOT button: inverts the condition — passes when count < min_count.',
+  'NOT button: inverts the condition — passes when count < minCount.',
   '  e.g. class=person, min=1, NOT → triggers when no person is present.',
   'Trigger label is included in the output signal metadata.',
-  'Right port outputs a LogicSignal — not a BBox stream.',
+  'Right port outputs a LogicSignal — not a Object stream.',
 ]
 
 interface LogicCondition {
-  class_name: string
-  min_count: number
+  className: string
+  minCount: number
   negate: boolean
 }
 
 interface LogicConfig {
   operation: 'AND' | 'OR'
   conditions: LogicCondition[]
-  trigger_label: string
+  triggerLabel: string
 }
 
 export function LogicNodeComponent({ id, data, selected }: NodeComponentProps) {
@@ -33,7 +33,7 @@ export function LogicNodeComponent({ id, data, selected }: NodeComponentProps) {
   const config = data.config as unknown as LogicConfig
   const availableClasses = data.availableClasses ?? []
 
-  const hasEmptyCondition = config.conditions.some((c) => !c.class_name)
+  const hasEmptyCondition = config.conditions.some((c) => !c.className)
   const isInvalid = config.conditions.length === 0 || hasEmptyCondition
 
   const setConfig = (updates: Partial<LogicConfig>) => {
@@ -49,11 +49,11 @@ export function LogicNodeComponent({ id, data, selected }: NodeComponentProps) {
 
   const handleMinCount = (index: number, raw: string) => {
     const v = parseIntInput(raw, 1)
-    if (v !== null) updateCondition(index, { min_count: v })
+    if (v !== null) updateCondition(index, { minCount: v })
   }
 
   const addCondition = () => {
-    setConfig({ conditions: [...config.conditions, { class_name: '', min_count: 1, negate: false }] })
+    setConfig({ conditions: [...config.conditions, { className: '', minCount: 1, negate: false }] })
   }
 
   const removeCondition = (index: number) => {
@@ -112,11 +112,11 @@ export function LogicNodeComponent({ id, data, selected }: NodeComponentProps) {
           <div key={i} style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
             {availableClasses.length > 0 ? (
               <select
-                value={cond.class_name}
-                onChange={(e) => updateCondition(i, { class_name: e.target.value })}
+                value={cond.className}
+                onChange={(e) => updateCondition(i, { className: e.target.value })}
                 style={{
                   flex: 2,
-                  borderColor: !cond.class_name ? '#f87171' : undefined,
+                  borderColor: !cond.className ? '#f87171' : undefined,
                 }}
               >
                 <option value="">-- select --</option>
@@ -126,12 +126,12 @@ export function LogicNodeComponent({ id, data, selected }: NodeComponentProps) {
               </select>
             ) : (
               <input
-                value={cond.class_name}
-                onChange={(e) => updateCondition(i, { class_name: e.target.value })}
+                value={cond.className}
+                onChange={(e) => updateCondition(i, { className: e.target.value })}
                 placeholder="class"
                 style={{
                   flex: 2,
-                  borderColor: !cond.class_name ? '#f87171' : undefined,
+                  borderColor: !cond.className ? '#f87171' : undefined,
                 }}
               />
             )}
@@ -139,7 +139,7 @@ export function LogicNodeComponent({ id, data, selected }: NodeComponentProps) {
               type="number"
               min={1}
               step={1}
-              value={cond.min_count}
+              value={cond.minCount}
               onChange={(e) => handleMinCount(i, e.target.value)}
               style={{ flex: 1, width: 44 }}
               title="Min count required"
@@ -182,8 +182,8 @@ export function LogicNodeComponent({ id, data, selected }: NodeComponentProps) {
       <label style={{ display: 'block' }}>
         Trigger label
         <input
-          value={config.trigger_label}
-          onChange={(e) => setConfig({ trigger_label: e.target.value })}
+          value={config.triggerLabel}
+          onChange={(e) => setConfig({ triggerLabel: e.target.value })}
           placeholder="alert label"
           style={{ display: 'block', width: '100%', marginTop: 2 }}
         />
